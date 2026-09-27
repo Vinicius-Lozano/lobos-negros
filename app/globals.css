@@ -1,0 +1,386 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #120909;
+  --void: #060403;
+  --blood: #d5121d;
+  --ember: #8f1016;
+  --paper: #f2e9d8;
+  --paper-line: #cbb287;
+  --charcoal-text: #201a15;
+  --bone: #efe6d4;
+  --bone-dim: #b9ac97;
+}
+
+@theme inline {
+  --font-display: var(--font-teko);
+  --font-sans: var(--font-work-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--void);
+}
+
+body {
+  background:
+    radial-gradient(ellipse 900px 500px at 15% -5%, rgba(213, 18, 29, 0.16), transparent 60%),
+    radial-gradient(ellipse 700px 600px at 100% 30%, rgba(213, 18, 29, 0.08), transparent 55%),
+    var(--ink);
+  color: var(--bone);
+  font-family: var(--font-work-sans), "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--blood);
+  color: var(--paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--blood);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- layout ---------- */
+
+.page {
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem 1.25rem 3rem;
+  isolation: isolate;
+}
+
+.claw {
+  position: absolute;
+  width: 34rem;
+  height: 34rem;
+  opacity: 0.1;
+  mix-blend-mode: screen;
+  filter: invert(1) brightness(1.4);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.claw--top {
+  top: -8rem;
+  right: -10rem;
+  transform: rotate(8deg);
+}
+
+.claw--bottom {
+  bottom: -10rem;
+  left: -12rem;
+  transform: rotate(190deg);
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 30rem;
+  margin-bottom: 2.5rem;
+}
+
+.emblem {
+  width: 10rem;
+  height: 10rem;
+  margin-bottom: 1rem;
+}
+
+.hero-eyebrow {
+  font-size: 0.9rem;
+  color: var(--bone-dim);
+  margin: 0 0 0.15rem;
+}
+
+.hero-title {
+  font-family: var(--font-teko), sans-serif;
+  font-weight: 600;
+  font-size: 4rem;
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  margin: 0 0 0.6rem;
+  color: var(--paper);
+  text-shadow: 0 2px 0 var(--blood);
+}
+
+.hero-sub {
+  color: var(--bone-dim);
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ---------- ticket card ---------- */
+
+.ticket-card {
+  position: relative;
+  width: 100%;
+  max-width: 30rem;
+  background: var(--paper);
+  color: var(--charcoal-text);
+  border-radius: 0.35rem;
+  padding: 2.25rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.65);
+}
+
+.ticket-card::before {
+  content: "";
+  position: absolute;
+  inset: 0.55rem;
+  border: 1px dashed var(--paper-line);
+  border-radius: 0.2rem;
+  pointer-events: none;
+}
+
+.ticket-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.ticket-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ticket-field label,
+.ticket-field-legend {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--charcoal-text);
+}
+
+.ticket-field input,
+.ticket-field select {
+  font-family: var(--font-work-sans), sans-serif;
+  font-size: 1rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--paper-line);
+  border-radius: 0.25rem;
+  background: #fffdf8;
+  color: var(--charcoal-text);
+}
+
+.ticket-field select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--charcoal-text) 50%),
+    linear-gradient(135deg, var(--charcoal-text) 50%, transparent 50%);
+  background-position: calc(100% - 1.2rem) center, calc(100% - 0.85rem) center;
+  background-size: 0.35rem 0.35rem, 0.35rem 0.35rem;
+  background-repeat: no-repeat;
+}
+
+.ticket-field input:focus,
+.ticket-field select:focus {
+  border-color: var(--blood);
+}
+
+.belt-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.belt-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--paper-line);
+  border-radius: 0.25rem;
+  background: #fffdf8;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.belt-option input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.belt-bar {
+  width: 0.55rem;
+  height: 1.6rem;
+  border-radius: 0.15rem;
+  border: 1px solid rgba(32, 26, 21, 0.25);
+  flex-shrink: 0;
+}
+
+.belt-label {
+  font-size: 0.85rem;
+  line-height: 1.15;
+}
+
+.belt-option:hover {
+  border-color: #a98f66;
+}
+
+.belt-option--selected {
+  border-color: var(--blood);
+  background: #fff6ec;
+  box-shadow: 0 0 0 1px var(--blood);
+}
+
+.belt-option--selected .belt-label {
+  font-weight: 600;
+}
+
+.ticket-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6b5c47;
+}
+
+.ticket-divider {
+  height: 1px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--paper-line) 0,
+    var(--paper-line) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}
+
+.ticket-row--stamped {
+  gap: 1.25rem;
+}
+
+.ticket-stamped-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  opacity: 0.8;
+}
+
+.ticket-stamped-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7a6a52;
+}
+
+.ticket-stamped-value {
+  font-weight: 600;
+  color: var(--charcoal-text);
+}
+
+.ticket-button {
+  margin-top: 0.25rem;
+  padding: 0.85rem 1.5rem;
+  background: var(--blood);
+  color: var(--paper);
+  border: none;
+  border-radius: 0.3rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.ticket-button:hover:not(:disabled) {
+  background: var(--ember);
+}
+
+.ticket-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.ticket-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ticket-button--ghost {
+  background: transparent;
+  color: var(--ember);
+  border: 1px solid var(--ember);
+}
+
+.ticket-button--ghost:hover {
+  background: rgba(143, 16, 22, 0.08);
+}
+
+.ticket-error {
+  margin: 0;
+  color: var(--ember);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.ticket-stamp {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.stamp-mark {
+  align-self: flex-start;
+  font-family: var(--font-teko), sans-serif;
+  font-size: 1.4rem;
+  letter-spacing: 0.08em;
+  color: var(--blood);
+  border: 3px solid var(--blood);
+  border-radius: 0.25rem;
+  padding: 0.15rem 0.75rem;
+  transform: rotate(-4deg);
+}
+
+.stamp-title {
+  font-family: var(--font-teko), sans-serif;
+  font-size: 2.2rem;
+  font-weight: 600;
+  margin: 0.25rem 0 0;
+}
+
+.stamp-text {
+  margin: 0;
+  line-height: 1.5;
+  color: #423527;
+}
+
+.page-footer {
+  margin-top: 3rem;
+  color: var(--bone-dim);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+@media (max-width: 30rem) {
+  .hero-title {
+    font-size: 3rem;
+  }
+
+  .ticket-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ticket-card {
+    padding: 1.75rem 1.25rem 1.5rem;
+  }
+}
