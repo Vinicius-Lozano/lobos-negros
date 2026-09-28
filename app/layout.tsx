@@ -15,7 +15,7 @@ const workSans = Work_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Ficha de Graduação — Lobos Negros",
+  title: "Ficha de Filiação — Lobos Negros",
   description:
     "Ficha de graduação da Associação Lobos Negros de Artes Marciais. Preencha seus dados para receber sua ficha por e-mail.",
 };
