@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { PdfPreview } from "./PdfPreview";
 import { PROFESSOR_RESPONSAVEL, EQUIPE, GRADUACAO_OPTIONS, validateFicha, type FichaInput } from "@/lib/ficha";
 
-type Status = "idle" | "sending" | "sent" | "error";
+// Etapas: preencher o formulário, conferir o PDF e, por fim, ficha enviada.
+type Etapa = "form" | "preview" | "sent";
+type Status = "idle" | "loading" | "error";
 
 const EMPTY: FichaInput = {
   nomeCompleto: "",
@@ -33,13 +36,25 @@ function scrollToField(field: keyof FichaInput | string) {
 
 export function FichaForm() {
   const [data, setData] = useState<FichaInput>(EMPTY);
+  // Confirmação do e-mail: só existe no formulário, não vai para a ficha nem para a API.
+  const [emailConfirmacao, setEmailConfirmacao] = useState("");
+  const [etapa, setEtapa] = useState<Etapa>("form");
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const [pdf, setPdf] = useState<ArrayBuffer | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   function update<K extends keyof FichaInput>(field: K, value: FichaInput[K]) {
     setData((prev) => ({ ...prev, [field]: value }));
   }
 
+  function limparPrevia() {
+    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    setPdf(null);
+    setPdfUrl(null);
+  }
+
+  // Passo 1: valida e gera o PDF para o aluno conferir. Nada é enviado ainda.
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
@@ -51,7 +66,45 @@ export function FichaForm() {
       return;
     }
 
-    setStatus("sending");
+    if (emailConfirmacao.trim().toLowerCase() !== data.email.trim().toLowerCase()) {
+      setStatus("error");
+      setMessage("Os e-mails não são iguais. Digite o mesmo e-mail nos dois campos.");
+      scrollToField("emailConfirmacao");
+      return;
+    }
+
+    setStatus("loading");
+    setMessage(null);
+
+    try {
+      const res = await fetch("/api/previa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (body.field) scrollToField(body.field);
+        throw new Error(body.error || "Falha ao gerar a ficha.");
+      }
+
+      const bytes = await res.arrayBuffer();
+      limparPrevia();
+      setPdf(bytes);
+      setPdfUrl(URL.createObjectURL(new Blob([bytes], { type: "application/pdf" })));
+      setStatus("idle");
+      setEtapa("preview");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setStatus("error");
+      setMessage(err instanceof Error ? err.message : "Falha ao gerar a ficha.");
+    }
+  }
+
+  // Passo 2: o aluno conferiu o PDF e confirmou. Agora envia o e-mail e grava na planilha.
+  async function handleEnviar() {
+    setStatus("loading");
     setMessage(null);
 
     try {
@@ -63,18 +116,26 @@ export function FichaForm() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        if (body.field) scrollToField(body.field);
         throw new Error(body.error || "Falha ao enviar a ficha.");
       }
 
-      setStatus("sent");
+      limparPrevia();
+      setStatus("idle");
+      setEtapa("sent");
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Falha ao enviar a ficha.");
     }
   }
 
-  if (status === "sent") {
+  function voltarParaCorrigir() {
+    limparPrevia();
+    setStatus("idle");
+    setMessage(null);
+    setEtapa("form");
+  }
+
+  if (etapa === "sent") {
     return (
       <div className="ticket-card ticket-stamp">
         <div className="stamp-mark">ENVIADA</div>
@@ -88,11 +149,53 @@ export function FichaForm() {
           className="ticket-button ticket-button--ghost"
           onClick={() => {
             setData(EMPTY);
-            setStatus("idle");
+            setEmailConfirmacao("");
+            setEtapa("form");
           }}
         >
           Preencher outra ficha
         </button>
+      </div>
+    );
+  }
+
+  if (etapa === "preview" && pdf) {
+    return (
+      <div className="ticket-card">
+        <h2 className="stamp-title">Confira sua ficha</h2>
+        <p className="ticket-hint">
+          Veja se todos os dados estão corretos. A ficha só será enviada para{" "}
+          <strong>{data.email}</strong> depois que você clicar em &quot;Confirmar e enviar&quot;.
+        </p>
+
+        <PdfPreview data={pdf} />
+
+        {pdfUrl && (
+          <a className="ticket-hint" href={pdfUrl} target="_blank" rel="noopener noreferrer">
+            Abrir o PDF em tela cheia
+          </a>
+        )}
+
+        {status === "error" && message && <p className="ticket-error">{message}</p>}
+
+        <div className="ticket-actions">
+          <button
+            type="button"
+            className="ticket-button ticket-button--ghost"
+            onClick={voltarParaCorrigir}
+            disabled={status === "loading"}
+          >
+            Voltar e corrigir
+          </button>
+          <button
+            type="button"
+            className="ticket-button"
+            onClick={handleEnviar}
+            disabled={status === "loading"}
+          >
+            {status === "loading" ? "Enviando..." : "Confirmar e enviar"}
+          </button>
+        </div>
       </div>
     );
   }
@@ -156,6 +259,23 @@ export function FichaForm() {
         <p className="ticket-hint">Sua ficha preenchida será enviada para este e-mail.</p>
       </div>
 
+      <div className="ticket-field">
+        <label htmlFor="emailConfirmacao">Confirme o e-mail</label>
+        <input
+          id="emailConfirmacao"
+          name="emailConfirmacao"
+          type="email"
+          autoComplete="off"
+          value={emailConfirmacao}
+          onChange={(e) => setEmailConfirmacao(e.target.value)}
+          onPaste={(e) => e.preventDefault()}
+          onDrop={(e) => e.preventDefault()}
+          placeholder="Digite o e-mail de novo"
+          required
+        />
+        <p className="ticket-hint">Digite de novo, sem copiar e colar.</p>
+      </div>
+
       <div className="ticket-field" id="graduacaoAtual-field">
         <span className="ticket-field-legend">Graduação atual</span>
         <div className="belt-grid" role="radiogroup" aria-label="Graduação atual">
@@ -213,8 +333,8 @@ export function FichaForm() {
 
       {status === "error" && message && <p className="ticket-error">{message}</p>}
 
-      <button type="submit" className="ticket-button" disabled={status === "sending"}>
-        {status === "sending" ? "Enviando..." : "Enviar ficha"}
+      <button type="submit" className="ticket-button" disabled={status === "loading"}>
+        {status === "loading" ? "Gerando a ficha..." : "Conferir ficha"}
       </button>
     </form>
   );
