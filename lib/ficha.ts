@@ -46,6 +46,28 @@ export function nomeArquivoFicha(nomeCompleto: string): string {
 
 export type FichaFieldError ={ field: keyof FichaInput; message: string };
 
+// Limites dos campos de data: de 1900 até hoje, sempre com ano de 4 dígitos.
+export const DATA_MINIMA = "1900-01-01";
+
+// Data de hoje no fuso de quem está usando, no formato do input de data (AAAA-MM-DD).
+export function hojeISO(): string {
+  const d = new Date();
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mes}-${dia}`;
+}
+
+// Aceita só AAAA-MM-DD de um dia que existe, entre DATA_MINIMA e hoje.
+// (Folga de 1 dia no máximo para o servidor, que roda em UTC, não recusar o "hoje" de quem está no Brasil.)
+export function dataValida(iso: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+  const [ano, mes, dia] = iso.split("-").map(Number);
+  const d = new Date(Date.UTC(ano, mes - 1, dia));
+  if (d.getUTCFullYear() !== ano || d.getUTCMonth() !== mes - 1 || d.getUTCDate() !== dia) return false;
+  const amanha = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return iso >= DATA_MINIMA && iso <= amanha;
+}
+
 export function validateFicha(data: Partial<FichaInput>): FichaFieldError[] {
   const errors: FichaFieldError[] = [];
 
@@ -54,6 +76,8 @@ export function validateFicha(data: Partial<FichaInput>): FichaFieldError[] {
   }
   if (!data.dataNascimento) {
     errors.push({ field: "dataNascimento", message: "Informe a data de nascimento." });
+  } else if (!dataValida(data.dataNascimento)) {
+    errors.push({ field: "dataNascimento", message: "Informe uma data de nascimento válida." });
   }
   if (!data.telefone || data.telefone.replace(/\D/g, "").length < 10) {
     errors.push({ field: "telefone", message: "Informe um telefone válido com DDD." });
@@ -64,7 +88,10 @@ export function validateFicha(data: Partial<FichaInput>): FichaFieldError[] {
   if (!data.graduacaoAtual || !GRADUACOES.includes(data.graduacaoAtual)) {
     errors.push({ field: "graduacaoAtual", message: "Selecione a graduação atual." });
   }
-  // Data da última graduação é opcional.
+  // Data da última graduação é opcional, mas se vier tem que ser válida.
+  if (data.ultimaGraduacao && !dataValida(data.ultimaGraduacao)) {
+    errors.push({ field: "ultimaGraduacao", message: "Informe uma data da última graduação válida." });
+  }
 
   return errors;
 }

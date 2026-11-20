@@ -1,8 +1,24 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useSyncExternalStore, type FormEvent } from "react";
 import { PdfPreview } from "./PdfPreview";
-import { PROFESSOR_RESPONSAVEL, EQUIPE, GRADUACAO_OPTIONS, nomeArquivoFicha, validateFicha, type FichaInput } from "@/lib/ficha";
+import {
+  PROFESSOR_RESPONSAVEL,
+  EQUIPE,
+  GRADUACAO_OPTIONS,
+  DATA_MINIMA,
+  hojeISO,
+  nomeArquivoFicha,
+  validateFicha,
+  type FichaInput,
+} from "@/lib/ficha";
+
+// A página é gerada no build: o "hoje" do limite das datas vem do navegador, não do dia do deploy.
+// No HTML estático vai um teto fixo de 4 dígitos, trocado pela data real assim que a página carrega.
+const semAssinatura = () => () => {};
+function useHoje() {
+  return useSyncExternalStore(semAssinatura, hojeISO, () => "9999-12-31");
+}
 
 // Etapas: preencher o formulário, conferir o PDF e, por fim, ficha enviada.
 type Etapa = "form" | "preview" | "sent";
@@ -43,6 +59,7 @@ export function FichaForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [pdf, setPdf] = useState<ArrayBuffer | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const hoje = useHoje();
 
   function update<K extends keyof FichaInput>(field: K, value: FichaInput[K]) {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -230,6 +247,8 @@ export function FichaForm() {
             id="dataNascimento"
             name="dataNascimento"
             type="date"
+            min={DATA_MINIMA}
+            max={hoje}
             value={data.dataNascimento}
             onChange={(e) => update("dataNascimento", e.target.value)}
             required
@@ -320,6 +339,8 @@ export function FichaForm() {
           id="ultimaGraduacao"
           name="ultimaGraduacao"
           type="date"
+          min={DATA_MINIMA}
+          max={hoje}
           value={data.ultimaGraduacao}
           onChange={(e) => update("ultimaGraduacao", e.target.value)}
         />
