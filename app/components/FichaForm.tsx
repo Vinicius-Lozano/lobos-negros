@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { PdfPreview } from "./PdfPreview";
-import { PROFESSOR_RESPONSAVEL, EQUIPE, GRADUACAO_OPTIONS, validateFicha, type FichaInput } from "@/lib/ficha";
+import { PROFESSOR_RESPONSAVEL, EQUIPE, GRADUACAO_OPTIONS, nomeArquivoFicha, validateFicha, type FichaInput } from "@/lib/ficha";
 
 // Etapas: preencher o formulário, conferir o PDF e, por fim, ficha enviada.
 type Etapa = "form" | "preview" | "sent";
@@ -119,7 +119,8 @@ export function FichaForm() {
         throw new Error(body.error || "Falha ao enviar a ficha.");
       }
 
-      limparPrevia();
+      // Mantém o PDF da prévia no navegador para o botão de download da tela final
+      // (é o mesmo arquivo do e-mail; baixar não chama o servidor de novo).
       setStatus("idle");
       setEtapa("sent");
     } catch (err) {
@@ -144,10 +145,16 @@ export function FichaForm() {
           Sua ficha de graduação foi preenchida e enviada para{" "}
           <strong>{data.email}</strong>. Confira sua caixa de entrada (e o spam).
         </p>
+        {pdfUrl && (
+          <a className="ticket-button" href={pdfUrl} download={nomeArquivoFicha(data.nomeCompleto)}>
+            Baixar a ficha (PDF)
+          </a>
+        )}
         <button
           type="button"
           className="ticket-button ticket-button--ghost"
           onClick={() => {
+            limparPrevia();
             setData(EMPTY);
             setEmailConfirmacao("");
             setEtapa("form");

@@ -317,6 +317,12 @@ body {
   cursor: not-allowed;
 }
 
+a.ticket-button {
+  display: inline-block;
+  text-align: center;
+  text-decoration: none;
+}
+
 .ticket-button--ghost {
   background: transparent;
   color: var(--ember);
