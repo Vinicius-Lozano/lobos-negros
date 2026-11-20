@@ -32,7 +32,19 @@ export function formatDateBR(isoDate: string): string {
   return `${day}/${month}/${year}`;
 }
 
-export type FichaFieldError = { field: keyof FichaInput; message: string };
+// Nome do PDF da ficha (anexo do e-mail e download no navegador), ex.: Ficha_de_Graduacao_Joao_Silva.pdf
+export function nomeArquivoFicha(nomeCompleto: string): string {
+  const nome = nomeCompleto
+    .trim()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // remove acentos
+    .replace(/[^a-zA-Z0-9\s]/g, "")
+    .trim()
+    .replace(/\s+/g, "_");
+  return `Ficha_de_Graduacao_${nome}.pdf`;
+}
+
+export type FichaFieldError ={ field: keyof FichaInput; message: string };
 
 export function validateFicha(data: Partial<FichaInput>): FichaFieldError[] {
   const errors: FichaFieldError[] = [];
