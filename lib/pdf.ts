@@ -16,15 +16,13 @@ const FIELD_POSITIONS: Record<keyof FichaInput, { centerX: number; baselineY: nu
   ultimaGraduacao: { centerX: 440.76, baselineY: 305.4, maxWidth: 240 },
 };
 
-// Professor/Equipe are fixed values (not part of the form), but drawn the same way:
-// the base PDF has that whole spot whited out (text + underline) because the .docx's own
-// static text there overlapped the line instead of sitting above it (see
-// scripts/generate-base-pdf.mjs). We redraw both the text and a fresh underline here.
+// Professor/Equipe are fixed values (not part of the form), but drawn the same way.
+// The base PDF has the .docx's own static text for them stripped out (it overlapped the
+// underline; see scripts/generate-base-pdf.mjs), so we draw them above the original line.
 const FIXED_FIELDS = [
-  { text: PROFESSOR_RESPONSAVEL, centerX: 155.76, baselineY: 359.3, maxWidth: 250, lineX1: 27.84, lineX2: 283.2 },
-  { text: EQUIPE, centerX: 440.16, baselineY: 359.3, maxWidth: 240, lineX1: 312.48, lineX2: 567.84 },
+  { text: PROFESSOR_RESPONSAVEL, centerX: 155.76, baselineY: 359.3, maxWidth: 250 },
+  { text: EQUIPE, centerX: 440.16, baselineY: 359.3, maxWidth: 240 },
 ];
-const LINE_Y = 356.3;
 
 const BASE_FONT_SIZE = 12;
 const MIN_FONT_SIZE = 8;
@@ -68,12 +66,6 @@ export async function gerarFichaPdf(data: FichaInput): Promise<Buffer> {
 
   for (const f of FIXED_FIELDS) {
     drawCentered(page, font, f.text, f.centerX, f.baselineY, f.maxWidth);
-    page.drawLine({
-      start: { x: f.lineX1, y: LINE_Y },
-      end: { x: f.lineX2, y: LINE_Y },
-      thickness: 1,
-      color: rgb(0, 0, 0),
-    });
   }
 
   return Buffer.from(await pdfDoc.save());

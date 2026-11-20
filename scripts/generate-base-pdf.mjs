@@ -14,7 +14,6 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
-import { PDFDocument, rgb } from "pdf-lib";
 
 const root = path.join(import.meta.dirname, "..");
 const templatePath = path.join(root, "templates", "ficha-graduacao.docx");
@@ -23,6 +22,21 @@ const blankDocxPath = path.join(outDir, "ficha-graduacao-base.docx");
 
 const content = fs.readFileSync(templatePath);
 const zip = new PizZip(content);
+
+// The source .docx has "Bruno Wilson Franklin Vale da Silva" / "LOBOS NEGROS" as
+// static (non-templated) text, badly vertically aligned in its table cell — it prints
+// over the field's underline. There's no template tag for it, so we strip that text from
+// the XML in memory (the original .docx stays untouched). The cards keep their original
+// borders and underline, and lib/pdf.ts draws both values above the line like any field.
+const documentXml = zip.file("word/document.xml").asText();
+const strippedXml = documentXml
+  .replace(">Bruno Wilson Franklin Vale da Silva<", "><")
+  .replace(">LOBOS NEGROS<", "><");
+if (strippedXml === documentXml) {
+  throw new Error("Static Professor/Equipe text not found in the .docx — check the template.");
+}
+zip.file("word/document.xml", strippedXml);
+
 const doc = new Docxtemplater(zip, {
   delimiters: { start: "<<", end: ">>" },
   paragraphLoop: true,
@@ -47,20 +61,5 @@ execFileSync("soffice", ["--headless", "--convert-to", "pdf", blankDocxPath, "--
 });
 
 fs.unlinkSync(blankDocxPath);
-
-// The source .docx has "Bruno Wilson Franklin Vale da Silva" / "LOBOS NEGROS" as
-// static (non-templated) text, badly vertically aligned in its table cell — it prints
-// below the field's underline instead of above it, overlapping the line itself. There's
-// no template tag for it, so blanking it via docxtemplater does nothing. We white out a
-// generous area (clearing the baked text AND its underline) and lib/pdf.ts redraws both
-// the text and a fresh underline in the right spot, like every other field.
-const outPdfPath = path.join(outDir, "ficha-graduacao-base.pdf");
-const pdfDoc = await PDFDocument.load(fs.readFileSync(outPdfPath));
-const page = pdfDoc.getPages()[0];
-const white = rgb(1, 1, 1);
-// Coordinates calibrated against this exact base PDF (A4, 595.3 x 841.9 pt).
-page.drawRectangle({ x: 27.84, y: 342.69, width: 255.36, height: 24, color: white });
-page.drawRectangle({ x: 312.48, y: 342.69, width: 255.36, height: 24, color: white });
-fs.writeFileSync(outPdfPath, await pdfDoc.save());
 
 console.log("Generated templates/ficha-graduacao-base.pdf");
