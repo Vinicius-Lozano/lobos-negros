@@ -156,7 +156,8 @@ body {
 
 .ticket-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr): a coluna pode encolher abaixo da largura mínima do input (senão vaza do card) */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 1.25rem;
 }
 
@@ -182,6 +183,9 @@ body {
   border-radius: 0.25rem;
   background: #fffdf8;
   color: var(--charcoal-text);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .ticket-field select {
