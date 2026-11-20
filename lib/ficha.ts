@@ -49,14 +49,6 @@ export type FichaFieldError ={ field: keyof FichaInput; message: string };
 // Limites dos campos de data: de 1900 até hoje, sempre com ano de 4 dígitos.
 export const DATA_MINIMA = "1900-01-01";
 
-// Data de hoje no fuso de quem está usando, no formato do input de data (AAAA-MM-DD).
-export function hojeISO(): string {
-  const d = new Date();
-  const mes = String(d.getMonth() + 1).padStart(2, "0");
-  const dia = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mes}-${dia}`;
-}
-
 // Aceita só AAAA-MM-DD de um dia que existe, entre DATA_MINIMA e hoje.
 // (Folga de 1 dia no máximo para o servidor, que roda em UTC, não recusar o "hoje" de quem está no Brasil.)
 export function dataValida(iso: string): boolean {

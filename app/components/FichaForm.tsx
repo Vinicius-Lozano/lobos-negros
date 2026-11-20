@@ -1,24 +1,15 @@
 "use client";
 
-import { useState, useSyncExternalStore, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { PdfPreview } from "./PdfPreview";
 import {
   PROFESSOR_RESPONSAVEL,
   EQUIPE,
   GRADUACAO_OPTIONS,
-  DATA_MINIMA,
-  hojeISO,
   nomeArquivoFicha,
   validateFicha,
   type FichaInput,
 } from "@/lib/ficha";
-
-// A página é gerada no build: o "hoje" do limite das datas vem do navegador, não do dia do deploy.
-// No HTML estático vai um teto fixo de 4 dígitos, trocado pela data real assim que a página carrega.
-const semAssinatura = () => () => {};
-function useHoje() {
-  return useSyncExternalStore(semAssinatura, hojeISO, () => "9999-12-31");
-}
 
 // Etapas: preencher o formulário, conferir o PDF e, por fim, ficha enviada.
 type Etapa = "form" | "preview" | "sent";
@@ -40,6 +31,30 @@ function maskTelefone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
+// Datas são digitadas como DD/MM/AAAA (campo de texto com máscara, no máximo 8 números).
+// O seletor nativo (type="date") deixava digitar anos de 6 dígitos no Firefox e em celulares.
+function maskData(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+// DD/MM/AAAA completo vira AAAA-MM-DD (formato da API e do PDF). Data incompleta passa
+// como está e a validação recusa.
+function dataParaISO(texto: string): string {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(texto);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : texto;
+}
+
+function paraEnvio(data: FichaInput): FichaInput {
+  return {
+    ...data,
+    dataNascimento: dataParaISO(data.dataNascimento),
+    ultimaGraduacao: dataParaISO(data.ultimaGraduacao),
+  };
+}
+
 function scrollToField(field: keyof FichaInput | string) {
   const id = field === "graduacaoAtual" ? "graduacaoAtual-field" : field;
   const el = document.getElementById(id);
@@ -59,7 +74,6 @@ export function FichaForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [pdf, setPdf] = useState<ArrayBuffer | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const hoje = useHoje();
 
   function update<K extends keyof FichaInput>(field: K, value: FichaInput[K]) {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -75,7 +89,7 @@ export function FichaForm() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
-    const errors = validateFicha(data);
+    const errors = validateFicha(paraEnvio(data));
     if (errors.length > 0) {
       setStatus("error");
       setMessage(errors[0].message);
@@ -97,7 +111,7 @@ export function FichaForm() {
       const res = await fetch("/api/previa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(paraEnvio(data)),
       });
 
       if (!res.ok) {
@@ -128,7 +142,7 @@ export function FichaForm() {
       const res = await fetch("/api/enviar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(paraEnvio(data)),
       });
 
       if (!res.ok) {
@@ -246,11 +260,12 @@ export function FichaForm() {
           <input
             id="dataNascimento"
             name="dataNascimento"
-            type="date"
-            min={DATA_MINIMA}
-            max={hoje}
+            type="text"
+            inputMode="numeric"
+            autoComplete="bday"
             value={data.dataNascimento}
-            onChange={(e) => update("dataNascimento", e.target.value)}
+            onChange={(e) => update("dataNascimento", maskData(e.target.value))}
+            placeholder="DD/MM/AAAA"
             required
           />
         </div>
@@ -338,11 +353,12 @@ export function FichaForm() {
         <input
           id="ultimaGraduacao"
           name="ultimaGraduacao"
-          type="date"
-          min={DATA_MINIMA}
-          max={hoje}
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
           value={data.ultimaGraduacao}
-          onChange={(e) => update("ultimaGraduacao", e.target.value)}
+          onChange={(e) => update("ultimaGraduacao", maskData(e.target.value))}
+          placeholder="DD/MM/AAAA"
         />
       </div>
 
